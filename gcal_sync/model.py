@@ -48,6 +48,8 @@ __all__ = [
     "ReminderMethod",
     "AccessRole",
     "CalendarBasic",
+    "ColorDefinition",
+    "ColorResponse",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,7 +59,7 @@ DATE_STR_FORMAT = "%Y-%m-%d"
 EVENT_FIELDS = (
     "id,iCalUID,summary,start,end,description,location,transparency,status,eventType,"
     "visibility,attendees,attendeesOmitted,recurrence,recurringEventId,originalStartTime,"
-    "reminders"
+    "reminders,colorId"
 )
 MIDNIGHT = datetime.time()
 ID_DELIM = "_"
@@ -200,6 +202,36 @@ class CalendarBasic(CalendarBaseModel):
 
     timezone: Optional[str] = Field(alias="timeZone", default=None)
     """The time zone of the calendar."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ColorDefinition(CalendarBaseModel):
+    """Model for a single color definition entry returned by the Google Calendar Colors API."""
+
+    background: str
+    """The background color of the calendar or event in the hexadecimal format (e.g., "#0088aa")."""
+
+    foreground: str
+    """The foreground color of the calendar or event in the hexadecimal format (e.g., "#ffffff")."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ColorResponse(CalendarBaseModel):
+    """API response containing the full list of available calendar and event colors."""
+
+    kind: str
+    """Type of the resource, which is always 'calendar#colors'."""
+
+    updated: Optional[datetime.datetime] = None
+    """Last time the color definitions were updated."""
+
+    calendar: dict[str, ColorDefinition] = {}
+    """A map of calendar color IDs (keys) to their definitions (values)."""
+
+    event: dict[str, ColorDefinition] = {}
+    """A map of event color IDs (keys) to their definitions (values). This map is used to resolve colorId to a hexadecimal color value."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -638,6 +670,11 @@ class Event(CalendarBaseModel):
     """A unique identifier event start in the original recurring event."""
 
     reminders: Optional[Reminders] = None
+
+    color_id: Optional[str] = Field(alias="colorId", default=None)
+    """The color of the event.
+    
+    This is an ID referring to an entry in the event section of the colors definition."""
 
     private_calendar_id: Optional[str] = Field(default=None, exclude=True)
     """The calendar id of the calendar this event belongs to.
