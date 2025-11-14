@@ -39,6 +39,7 @@ from .model import (
     Event,
     EventStatusEnum,
     SyntheticEventId,
+    ColorResponse,
 )
 from .store import CalendarStore
 from .timeline import Timeline, calendar_timeline
@@ -442,6 +443,31 @@ class GoogleCalendarService:
                 calendar_id=pathname2url(calendar_id), event_id=pathname2url(event_id)
             ),
         )
+
+    async def async_list_colors(self) -> ColorResponse:
+            """List colors available to the calendar API."""
+            response = await self._api.async_list_colors()
+            return ColorResponse.parse_obj(response)
+    
+    async def async_update_event(
+        self,
+        calendar_id: str,
+        event: Event,
+        send_notifications: bool | None = None,
+    ) -> Event:
+        """Update a calendar event, including properties like colorId."""
+        body = json.loads(
+            event.model_dump_json(
+                exclude_unset=True, by_alias=True
+            )
+        )
+        response = await self._api.async_patch_event(
+            calendar_id=calendar_id,
+            event_id=event.id,
+            body=body,
+            send_notifications=send_notifications,
+        )
+        return Event.parse_obj(response)
 
 
 class LocalCalendarListResponse(CalendarBaseModel):
